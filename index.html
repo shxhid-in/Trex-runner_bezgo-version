@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bezgoFresh Daily Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 800px;
+            max-height: 600px;
+            background: #ffffff;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #008080;
+            transition: color 0.3s ease;
+        }
+
+        #watermark {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 11px;
+            color: rgba(0, 128, 128, 0.8);
+            pointer-events: none;
+            z-index: 1000;
+            font-style: italic;
+            transition: color 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        #soundToggle {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 128, 128, 0.2);
+            border: 2px solid #008080;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            font-size: 20px;
+        }
+
+        #soundToggle.muted {
+            opacity: 0.5;
+        }
+
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #gameOverScreen.show {
+            display: flex;
+        }
+
+        #gameOverContent {
+            background: white;
+            color: #008080;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        #gameOverMessage {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        #finalScore {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #008080;
+        }
+
+        #rewardInfo {
+            background: #e0f7f7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        #rewardInfo.show {
+            display: block;
+        }
+
+        #rewardTitle {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #008080;
+        }
+
+        #rewardInstructions {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .button {
+            background: #008080;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background: #006666;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            color: #008080;
+        }
+
+        #startScreen.hidden {
+            display: none;
+        }
+
+        #startTitle {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        #startInstructions {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #startButton {
+            background: #008080;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #startButton:hover {
+            background: #006666;
+        }
+
+        @media (max-width: 600px) {
+            #score {
+                font-size: 20px;
+            }
+
+            #startTitle {
+                font-size: 28px;
+            }
+
+            #startInstructions {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div id="score">0</div>
+        </div>
+
+        <div id="watermark">Inspired from the T-rex runner</div>
+
+        <div id="startScreen">
+            <div id="startTitle">bezgoFresh Daily Runner</div>
+            <div id="startInstructions">
+                Help the delivery rider avoid obstacles!<br>
+                Press SPACE or TAP to jump
+            </div>
+            <button id="startButton">Start Game</button>
+        </div>
+
+        <div id="gameOverScreen">
+            <div id="gameOverContent">
+                <div id="gameOverMessage"></div>
+                <div id="finalScore">Score: 0</div>
+                <div id="rewardInfo">
+                    <div id="rewardTitle">🎉 Reward Unlocked!</div>
+                    <div id="rewardText"></div>
+                    <div id="rewardInstructions">
+                        Take a screenshot and send it to bezgoFresh WhatsApp to claim your reward.
+                    </div>
+                </div>
+                <button class="button" id="playAgainButton">Play Again</button>
+                <button class="button" id="orderNowButton" style="display: none;">Order Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+        let GROUND_Y = CANVAS_HEIGHT - 100;
+        const GRAVITY = 0.8;
+        const JUMP_STRENGTH = -12;
+        const MAX_JUMP_HEIGHT = 120; // Maximum height rider can jump
+        const BASE_SPEED = 5;
+        const MAX_SPEED = 12;
+        const SPEED_INCREMENT = 0.3;
+        const SPEED_INTERVAL = 100;
+        const THEME_SWITCH_INTERVAL = 300;
+        const OBSTACLE_SPAWN_RATE = 0.015;
+        const MIN_OBSTACLE_DISTANCE = 250; // Minimum distance between obstacles (like T-Rex game)
+        const DOUBLE_CONE_THRESHOLD = 500;
+        const CROW_SPAWN_THRESHOLD = 300;
+
+        // Game State
+        let canvas, ctx;
+        let gameState = 'start'; // 'start', 'playing', 'gameover'
+        let score = 0;
+        let gameSpeed = BASE_SPEED;
+        // Sound is always enabled - users control volume via device settings
+        const isSoundEnabled = true;
+        let devToolsOpen = false;
+        let lastThemeSwitch = 0;
+        let currentTheme = 'morning'; // 'morning' or 'night'
+        let gameStartTime = 0;
+        let frameCount = 0; // Frame counter for score increment
+
+        // Player
+        const rider = {
+            x: 100,
+            y: GROUND_Y - 60, // Top of rider (so bottom aligns with ground)
+            width: 60,
+            height: 60,
+            velocityY: 0,
+            isJumping: false,
+            groundY: GROUND_Y,
+            maxJumpY: 0 // Track the highest point reached in current jump
+        };
+
+        // Obstacles
+        let obstacles = [];
+        let lastObstacleX = 0; // Track last obstacle position for spacing
+
+        // Audio Context
+        let audioContext;
+        let sounds = {};
+
+        // Initialize
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Initialize audio
+            initAudio();
+
+            // Make canvas focusable for keyboard events
+            canvas.setAttribute('tabindex', '0');
+            canvas.style.outline = 'none';
+            
+            // Event listeners
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            canvas.addEventListener('keydown', handleKeyDown);
+            canvas.addEventListener('touchstart', handleTouch, { passive: false });
+            canvas.addEventListener('touchend', handleTouch, { passive: false });
+            canvas.addEventListener('click', handleClick);
+            document.getElementById('startButton').addEventListener('click', startGame);
+            document.getElementById('playAgainButton').addEventListener('click', resetGame);
+            
+            // Focus canvas on load
+            canvas.focus();
+
+            // DevTools detection
+            detectDevTools();
+
+            // Start game loop
+            gameLoop();
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            // Update ground Y based on canvas height
+            GROUND_Y = canvas.height - 100;
+            rider.groundY = GROUND_Y;
+            rider.y = rider.groundY + 60 - rider.height;
+        }
+
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Resume audio context on user interaction (required by browsers)
+                document.addEventListener('click', function resumeAudio() {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    document.removeEventListener('click', resumeAudio);
+                }, { once: true });
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        function playSound(type) {
+            if (!isSoundEnabled || !audioContext) return;
+            
+            // Resume audio context if suspended (browser autoplay policy)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            const now = audioContext.currentTime;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            switch (type) {
+                case 'jump':
+                    // Soft whoosh sound - quick upward sweep
+                    oscillator.frequency.setValueAtTime(200, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.08, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.15);
+                    break;
+                    
+                case 'collision':
+                    // Short error/thud sound - low frequency thump
+                    oscillator.frequency.setValueAtTime(100, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+                    oscillator.type = 'sawtooth';
+                    gainNode.gain.setValueAtTime(0.15, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.25);
+                    break;
+                    
+                case 'reward':
+                    // Soft chime - pleasant ascending notes
+                    // Play a short melody: C5 -> E5 -> G5
+                    const notes = [523.25, 659.25, 783.99]; // C, E, G
+                    notes.forEach((freq, index) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        const noteTime = now + (index * 0.1);
+                        gain.gain.setValueAtTime(0, noteTime);
+                        gain.gain.linearRampToValueAtTime(0.12, noteTime + 0.05);
+                        gain.gain.linearRampToValueAtTime(0, noteTime + 0.2);
+                        osc.start(noteTime);
+                        osc.stop(noteTime + 0.2);
+                    });
+                    return; // Return early since we're creating multiple oscillators
+                    
+                case 'theme':
+                    // Subtle ambient cue - gentle transition sound
+                    oscillator.frequency.value = 350;
+                    oscillator.type = 'triangle';
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.06, now + 0.1);
+                    gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.4);
+                    break;
+            }
+        }
+
+
+        function detectDevTools() {
+            let devtools = { open: false, orientation: null };
+            const threshold = 160;
+            setInterval(() => {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    if (!devtools.open) {
+                        devtools.open = true;
+                        devToolsOpen = true;
+                    }
+                } else {
+                    if (devtools.open) {
+                        devtools.open = false;
+                        devToolsOpen = false;
+                    }
+                }
+            }, 500);
+        }
+
+        function handleKeyDown(e) {
+            // Handle spacebar
+            if (e.code === 'Space' || e.key === ' ' || e.keyCode === 32) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (gameState === 'start') {
+                    startGame();
+                } else if (gameState === 'playing') {
+                    jump();
+                } else if (gameState === 'gameover') {
+                    resetGame();
+                }
+            }
+        }
+
+        function handleKeyUp(e) {
+            // Reserved for future use
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            } else if (gameState === 'gameover') {
+                resetGame();
+            }
+        }
+
+        function handleClick(e) {
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            }
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            document.getElementById('startScreen').classList.add('hidden');
+            gameStartTime = Date.now();
+            score = 0;
+            frameCount = 0;
+            gameSpeed = BASE_SPEED;
+            obstacles = [];
+            lastObstacleX = 0;
+            rider.y = rider.groundY + 60 - rider.height;
+            rider.velocityY = 0;
+            rider.isJumping = false;
+            rider.maxJumpY = 0;
+            currentTheme = 'morning';
+            lastThemeSwitch = 0;
+            updateTheme();
+            // Focus canvas for keyboard input
+            canvas.focus();
+        }
+
+        function jump() {
+            if (gameState !== 'playing') return;
+            
+            // Only allow jump when rider is on the ground
+            const groundLevel = rider.groundY + 60;
+            const riderBottomY = rider.y + rider.height;
+            const isOnGround = Math.abs(riderBottomY - groundLevel) < 3;
+            
+            // Can only jump if on ground and not already jumping
+            if (isOnGround && !rider.isJumping) {
+                rider.velocityY = JUMP_STRENGTH;
+                rider.isJumping = true;
+                rider.maxJumpY = rider.y; // Track starting position
+                playSound('jump');
+            }
+        }
+
+        function resetGame() {
+            gameState = 'start';
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('startScreen').classList.remove('hidden');
+            score = 0;
+            frameCount = 0;
+            gameSpeed = BASE_SPEED;
+            obstacles = [];
+            lastObstacleX = 0;
+            rider.y = rider.groundY + 60 - rider.height;
+            rider.velocityY = 0;
+            rider.isJumping = false;
+            rider.maxJumpY = 0;
+            currentTheme = 'morning';
+            lastThemeSwitch = 0;
+            updateTheme();
+            updateScore();
+        }
+
+        function spawnObstacle() {
+            const groundLevel = rider.groundY + 60;
+            let newObstacle;
+            
+            // Add double cone after threshold - close together so single jump can't clear both
+            if (score >= DOUBLE_CONE_THRESHOLD && Math.random() < 0.3) {
+                newObstacle = {
+                    type: 'doubleCone',
+                    x: canvas.width,
+                    y: groundLevel - 50, // Bottom of cone at ground level
+                    width: 30,
+                    height: 50,
+                    gap: 15 // Close together - requires precise timing or ducking between
+                };
+            }
+            // Add crow after threshold (mid-air) - random heights but always clearable
+            else if (score >= CROW_SPAWN_THRESHOLD && Math.random() < 0.15) {
+                // Random height between 50px and 100px above ground
+                // This ensures the bird is always clearable with a jump (max jump is 120px)
+                const minHeight = 50;  // Low position (easy to jump)
+                const maxHeight = 100; // High position (requires good timing)
+                const randomHeight = minHeight + Math.random() * (maxHeight - minHeight);
+                
+                newObstacle = {
+                    type: 'crow',
+                    x: canvas.width,
+                    y: groundLevel - randomHeight, // Random height above ground
+                    width: 40,
+                    height: 30
+                };
+            }
+            // Regular single cone
+            else {
+                newObstacle = {
+                    type: 'cone',
+                    x: canvas.width,
+                    y: groundLevel - 50, // Bottom of cone at ground level
+                    width: 30,
+                    height: 50
+                };
+            }
+            
+            obstacles.push(newObstacle);
+            // Update last obstacle position (for double cone, use the second cone's end)
+            if (newObstacle.type === 'doubleCone') {
+                lastObstacleX = newObstacle.x + newObstacle.width + newObstacle.gap + newObstacle.width;
+            } else {
+                lastObstacleX = newObstacle.x + newObstacle.width;
+            }
+        }
+
+        function updateTheme() {
+            const body = document.body;
+            const container = document.getElementById('gameContainer');
+            const scoreElement = document.getElementById('score');
+            const watermarkElement = document.getElementById('watermark');
+            
+            if (currentTheme === 'morning') {
+                body.style.background = '#ffffff';
+                container.style.background = '#ffffff';
+                scoreElement.style.color = '#008080'; // Teal on white
+                watermarkElement.style.color = 'rgba(255, 255, 255, 0.8)'; // White text on white background
+                watermarkElement.style.background = 'rgba(0, 128, 128, 0.3)'; // Teal background for contrast
+            } else {
+                body.style.background = '#008080';
+                container.style.background = '#008080';
+                scoreElement.style.color = '#ffffff'; // White on teal
+                watermarkElement.style.color = 'rgba(0, 128, 128, 0.8)'; // Teal text on teal background
+                watermarkElement.style.background = 'rgba(255, 255, 255, 0.3)'; // White background for contrast
+            }
+        }
+
+        function checkThemeSwitch() {
+            if (score - lastThemeSwitch >= THEME_SWITCH_INTERVAL && Math.random() < 0.3) {
+                currentTheme = currentTheme === 'morning' ? 'night' : 'morning';
+                lastThemeSwitch = score;
+                updateTheme();
+                playSound('theme');
+            }
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+
+            // Check for cheating
+            if (devToolsOpen) {
+                // Invalidate score if devtools detected
+                score = Math.min(score, 50);
+            }
+
+            // Update score (15 points per second = every 4 frames at 60fps)
+            frameCount++;
+            if (frameCount % 4 === 0) {
+                score += 1;
+                updateScore();
+            }
+
+            // Speed scaling
+            const speedLevel = Math.floor(score / SPEED_INTERVAL);
+            gameSpeed = Math.min(BASE_SPEED + (speedLevel * SPEED_INCREMENT), MAX_SPEED);
+
+            // Theme switching
+            checkThemeSwitch();
+
+            // Update rider
+            rider.velocityY += GRAVITY;
+            rider.y += rider.velocityY;
+
+            const groundLevel = rider.groundY + 60;
+            const riderBottomY = rider.y + rider.height;
+            
+            // Limit jump height - if rider has jumped too high, start falling
+            if (rider.isJumping) {
+                const jumpHeight = rider.maxJumpY - rider.y;
+                if (jumpHeight >= MAX_JUMP_HEIGHT && rider.velocityY < 0) {
+                    // Reached max height, start falling
+                    rider.velocityY = 0;
+                }
+            }
+            
+            // Land on ground
+            if (riderBottomY >= groundLevel) {
+                rider.y = groundLevel - rider.height;
+                rider.velocityY = 0;
+                rider.isJumping = false;
+                rider.maxJumpY = 0;
+            }
+
+            // Spawn obstacles with proper spacing
+            // Check if we can spawn: either no obstacles, or enough distance from last obstacle
+            let canSpawn = false;
+            if (obstacles.length === 0) {
+                canSpawn = true;
+            } else {
+                // Calculate distance from rightmost obstacle to spawn point (right edge of canvas)
+                const distanceToSpawn = canvas.width - lastObstacleX;
+                canSpawn = distanceToSpawn >= MIN_OBSTACLE_DISTANCE;
+            }
+            
+            if (canSpawn && Math.random() < OBSTACLE_SPAWN_RATE * (1 + score / 1000)) {
+                spawnObstacle();
+            }
+
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+
+                // Check collision
+                if (checkCollision(rider, obstacles[i])) {
+                    endGame();
+                    return; // Stop updating immediately
+                }
+
+                // Remove off-screen obstacles
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+            
+            // Update lastObstacleX to track the rightmost obstacle
+            if (obstacles.length > 0) {
+                let rightmostX = 0;
+                obstacles.forEach(obstacle => {
+                    let obstacleEndX;
+                    if (obstacle.type === 'doubleCone') {
+                        obstacleEndX = obstacle.x + obstacle.width + obstacle.gap + obstacle.width;
+                    } else {
+                        obstacleEndX = obstacle.x + obstacle.width;
+                    }
+                    if (obstacleEndX > rightmostX) {
+                        rightmostX = obstacleEndX;
+                    }
+                });
+                lastObstacleX = rightmostX;
+            } else {
+                lastObstacleX = 0;
+            }
+        }
+
+        function checkCollision(rider, obstacle) {
+            // Calculate rider's actual visual position (matching drawRider function)
+            const groundLevel = rider.groundY + 60;
+            const riderBottomY = rider.y + rider.height;
+            const offsetFromGround = riderBottomY - groundLevel;
+            const baseY = groundLevel + offsetFromGround;
+            
+            // Create collision box for rider - smaller and more accurate
+            // Focus on the main body area (scooter + person), not the full rectangle
+            const riderCollisionBox = {
+                x: rider.x + 15, // Start after front wheel
+                y: baseY - 50, // Top of rider (person's head area)
+                width: 35, // Width of scooter body
+                height: 50 // Height from head to ground
+            };
+            
+            if (obstacle.type === 'doubleCone') {
+                // Check collision with both cones - use smaller collision boxes for cones too
+                const cone1 = { 
+                    x: obstacle.x + 5, 
+                    y: obstacle.y, 
+                    width: obstacle.width - 10, 
+                    height: obstacle.height 
+                };
+                const cone2 = { 
+                    x: obstacle.x + obstacle.width + obstacle.gap + 5, 
+                    y: obstacle.y, 
+                    width: obstacle.width - 10, 
+                    height: obstacle.height 
+                };
+                return (checkRectCollision(riderCollisionBox, cone1) || checkRectCollision(riderCollisionBox, cone2));
+            } else if (obstacle.type === 'crow') {
+                // Crow collision - smaller box
+                const crowBox = {
+                    x: obstacle.x + 5,
+                    y: obstacle.y + 5,
+                    width: obstacle.width - 10,
+                    height: obstacle.height - 10
+                };
+                return checkRectCollision(riderCollisionBox, crowBox);
+            } else {
+                // Single cone - smaller collision box
+                const coneBox = {
+                    x: obstacle.x + 5,
+                    y: obstacle.y,
+                    width: obstacle.width - 10,
+                    height: obstacle.height
+                };
+                return checkRectCollision(riderCollisionBox, coneBox);
+            }
+        }
+
+        function checkRectCollision(rect1, rect2) {
+            // Use actual visual positions for collision
+            const rect1Bottom = rect1.y + rect1.height;
+            const rect2Bottom = rect2.y + rect2.height;
+            
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2Bottom &&
+                   rect1Bottom > rect2.y;
+        }
+
+        function draw() {
+            // Clear canvas
+            const bgColor = currentTheme === 'morning' ? '#ffffff' : '#008080';
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            const groundColor = currentTheme === 'morning' ? '#008080' : '#ffffff';
+            ctx.fillStyle = groundColor;
+            const groundLevel = rider.groundY + 60;
+            ctx.fillRect(0, groundLevel, canvas.width, canvas.height - groundLevel);
+
+            // Draw ground line
+            ctx.strokeStyle = groundColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, groundLevel);
+            ctx.lineTo(canvas.width, groundLevel);
+            ctx.stroke();
+
+            if (gameState === 'playing' || gameState === 'gameover') {
+                // Draw rider (scooter)
+                drawRider();
+
+                // Draw obstacles
+                obstacles.forEach(obstacle => {
+                    drawObstacle(obstacle);
+                });
+            }
+        }
+
+        function drawRider() {
+            const color = currentTheme === 'morning' ? '#008080' : '#ffffff';
+            const accentColor = currentTheme === 'morning' ? '#ffffff' : '#008080';
+            const groundLevel = rider.groundY + 60;
+            const riderX = rider.x;
+            // Use rider.y for vertical position - this allows jumping!
+            const riderBottomY = rider.y + rider.height;
+            const offsetFromGround = riderBottomY - groundLevel;
+            
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+
+            // Calculate positions relative to rider's actual y position
+            const baseY = groundLevel + offsetFromGround;
+            
+            // Motorcycle wheels (larger than scooter)
+            // Front wheel
+            ctx.beginPath();
+            ctx.arc(riderX + 20, baseY, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = accentColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Wheel rim
+            ctx.beginPath();
+            ctx.arc(riderX + 20, baseY, 10, 0, Math.PI * 2);
+            ctx.stroke();
+            // Spokes
+            ctx.beginPath();
+            ctx.moveTo(riderX + 20, baseY - 14);
+            ctx.lineTo(riderX + 20, baseY + 14);
+            ctx.moveTo(riderX + 6, baseY);
+            ctx.lineTo(riderX + 34, baseY);
+            ctx.stroke();
+            
+            // Back wheel (larger)
+            ctx.beginPath();
+            ctx.arc(riderX + 50, baseY, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Wheel rim
+            ctx.beginPath();
+            ctx.arc(riderX + 50, baseY, 11, 0, Math.PI * 2);
+            ctx.stroke();
+            // Spokes
+            ctx.beginPath();
+            ctx.moveTo(riderX + 50, baseY - 16);
+            ctx.lineTo(riderX + 50, baseY + 16);
+            ctx.moveTo(riderX + 34, baseY);
+            ctx.lineTo(riderX + 66, baseY);
+            ctx.stroke();
+            
+            // Reset stroke
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            
+            // Motorcycle frame (main body)
+            ctx.fillRect(riderX + 18, baseY - 8, 32, 6);
+            
+            // Fuel tank (bulge on top)
+            ctx.beginPath();
+            ctx.ellipse(riderX + 30, baseY - 15, 12, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Engine block (below fuel tank)
+            ctx.fillRect(riderX + 22, baseY - 8, 16, 6);
+            
+            // Seat
+            ctx.beginPath();
+            ctx.ellipse(riderX + 40, baseY - 10, 10, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Front fork (suspension)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 20, baseY);
+            ctx.lineTo(riderX + 20, baseY - 25);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Handlebar (wider, motorcycle style)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 5, baseY - 25);
+            ctx.lineTo(riderX + 35, baseY - 25);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Handlebar grips
+            ctx.beginPath();
+            ctx.arc(riderX + 5, baseY - 25, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(riderX + 35, baseY - 25, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Delivery rider (person on bike)
+            // Helmet
+            ctx.beginPath();
+            ctx.arc(riderX + 22, baseY - 38, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = accentColor;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            // Helmet visor
+            ctx.beginPath();
+            ctx.arc(riderX + 22, baseY - 35, 6, 0, Math.PI);
+            ctx.stroke();
+            
+            // Body (torso - leaning forward on bike)
+            ctx.fillRect(riderX + 18, baseY - 32, 10, 16);
+            // Delivery bag/box on back
+            ctx.fillRect(riderX + 28, baseY - 30, 8, 12);
+            
+            // Arms (holding handlebar - extended forward)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(riderX + 18, baseY - 28);
+            ctx.lineTo(riderX + 8, baseY - 25);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(riderX + 28, baseY - 28);
+            ctx.lineTo(riderX + 38, baseY - 25);
+            ctx.stroke();
+            
+            // Legs (on bike, bent)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 20, baseY - 16);
+            ctx.lineTo(riderX + 20, baseY - 5);
+            ctx.lineTo(riderX + 18, baseY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(riderX + 26, baseY - 16);
+            ctx.lineTo(riderX + 26, baseY - 5);
+            ctx.lineTo(riderX + 28, baseY);
+            ctx.stroke();
+            
+            // Feet (on footpegs)
+            ctx.fillRect(riderX + 16, baseY - 2, 5, 3);
+            ctx.fillRect(riderX + 27, baseY - 2, 5, 3);
+            
+            // Exhaust pipe (on right side)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 50, baseY - 5);
+            ctx.lineTo(riderX + 58, baseY - 8);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawObstacle(obstacle) {
+            const color = currentTheme === 'morning' ? '#008080' : '#ffffff';
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+
+            if (obstacle.type === 'cone') {
+                // Traffic cone
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x + obstacle.width / 2, obstacle.y);
+                ctx.lineTo(obstacle.x, obstacle.y + obstacle.height);
+                ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Cone stripes
+                ctx.strokeStyle = currentTheme === 'morning' ? '#ffffff' : '#008080';
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height * 0.3);
+                ctx.lineTo(obstacle.x, obstacle.y + obstacle.height * 0.6);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height * 0.6);
+                ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height * 0.6);
+                ctx.stroke();
+            } else if (obstacle.type === 'doubleCone') {
+                // First cone
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x + obstacle.width / 2, obstacle.y);
+                ctx.lineTo(obstacle.x, obstacle.y + obstacle.height);
+                ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Second cone
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x + obstacle.width + obstacle.gap + obstacle.width / 2, obstacle.y);
+                ctx.lineTo(obstacle.x + obstacle.width + obstacle.gap, obstacle.y + obstacle.height);
+                ctx.lineTo(obstacle.x + obstacle.width + obstacle.gap + obstacle.width, obstacle.y + obstacle.height);
+                ctx.closePath();
+                ctx.fill();
+            } else if (obstacle.type === 'crow') {
+                // Crow (bird) - realistic bird shape in flight
+                const x = obstacle.x;
+                const y = obstacle.y;
+                const w = obstacle.width;
+                const h = obstacle.height;
+                const centerX = x + w / 2;
+                const centerY = y + h / 2;
+                const accentColor = currentTheme === 'morning' ? '#ffffff' : '#008080';
+                
+                // Body (elongated oval, horizontal)
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, w * 0.2, h * 0.25, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Left wing (upper) - large, curved
+                ctx.beginPath();
+                ctx.moveTo(centerX - w * 0.1, centerY - h * 0.1);
+                ctx.quadraticCurveTo(x - w * 0.15, y, x - w * 0.05, y + h * 0.1);
+                ctx.quadraticCurveTo(x + w * 0.05, y + h * 0.2, centerX - w * 0.05, centerY);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Right wing (upper) - large, curved
+                ctx.beginPath();
+                ctx.moveTo(centerX + w * 0.1, centerY - h * 0.1);
+                ctx.quadraticCurveTo(x + w * 1.15, y, x + w * 1.05, y + h * 0.1);
+                ctx.quadraticCurveTo(x + w * 0.95, y + h * 0.2, centerX + w * 0.05, centerY);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Left wing (lower) - smaller, behind
+                ctx.beginPath();
+                ctx.moveTo(centerX - w * 0.15, centerY + h * 0.05);
+                ctx.quadraticCurveTo(x - w * 0.2, y + h * 0.3, x, y + h * 0.4);
+                ctx.quadraticCurveTo(x + w * 0.1, y + h * 0.35, centerX - w * 0.05, centerY + h * 0.1);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Right wing (lower) - smaller, behind
+                ctx.beginPath();
+                ctx.moveTo(centerX + w * 0.15, centerY + h * 0.05);
+                ctx.quadraticCurveTo(x + w * 1.2, y + h * 0.3, x + w, y + h * 0.4);
+                ctx.quadraticCurveTo(x + w * 0.9, y + h * 0.35, centerX + w * 0.05, centerY + h * 0.1);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Head (smaller circle, at front)
+                ctx.beginPath();
+                ctx.arc(centerX + w * 0.25, centerY - h * 0.1, w * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Eye (small dot)
+                ctx.fillStyle = accentColor;
+                ctx.beginPath();
+                ctx.arc(centerX + w * 0.3, centerY - h * 0.1, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = color;
+                
+                // Beak (pointed, triangular)
+                ctx.beginPath();
+                ctx.moveTo(centerX + w * 0.4, centerY - h * 0.05);
+                ctx.lineTo(centerX + w * 0.5, centerY);
+                ctx.lineTo(centerX + w * 0.4, centerY + h * 0.05);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Tail (fan-shaped, pointing down and back)
+                ctx.beginPath();
+                ctx.moveTo(centerX - w * 0.25, centerY + h * 0.15);
+                ctx.lineTo(x - w * 0.1, y + h * 0.6);
+                ctx.lineTo(centerX - w * 0.15, y + h * 0.5);
+                ctx.lineTo(x, y + h * 0.55);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+        }
+
+        function getReward(score) {
+            if (score < 400) return null;
+            if (score < 700) return { text: '₹50 OFF on orders above ₹499', tier: 1 };
+            if (score < 1000) return { text: 'Free delivery on next order', tier: 2 };
+            if (score < 1500) return { text: '₹100 OFF on orders above ₹999', tier: 3 };
+            return { text: 'Free delivery + ₹100 OFF (₹999+)', tier: 4 };
+        }
+
+        function canClaimRewardToday() {
+            const today = new Date().toDateString();
+            const lastClaim = localStorage.getItem('bezgofresh_game_lastClaim');
+            return lastClaim !== today;
+        }
+
+        function markRewardClaimed() {
+            const today = new Date().toDateString();
+            localStorage.setItem('bezgofresh_game_lastClaim', today);
+        }
+
+        function endGame() {
+            gameState = 'gameover';
+            playSound('collision');
+
+            const reward = getReward(score);
+            const canClaim = canClaimRewardToday();
+            
+            // Debug logging
+            console.log('Game Over - Score:', score, 'Reward:', reward, 'Can Claim:', canClaim);
+
+            // Show game over screen
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverMessage = document.getElementById('gameOverMessage');
+            const finalScoreEl = document.getElementById('finalScore');
+            const rewardInfo = document.getElementById('rewardInfo');
+            const rewardText = document.getElementById('rewardText');
+
+            finalScoreEl.textContent = `Score: ${score}`;
+
+            // Set message and reward based on score and reward status
+            if (!reward) {
+                // Score too low (< 400) - show random failure message
+                const messages = [
+                    'Order got delayed',
+                    'The cut is not right',
+                    'You delivered the wrong address',
+                    'The weight is not right',
+                    'This is not the product that the customer asked for',
+                    'Delivery took too long',
+                    'Packaging damaged',
+                    'Item not fresh enough',
+                    'Temperature not maintained',
+                    'Customer not reachable',
+                    'Incorrect pin location',
+                    'Order cancelled mid-way'
+                ];
+                gameOverMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
+                rewardInfo.classList.remove('show');
+            } else if (!canClaim) {
+                // Reward earned but already claimed today
+                gameOverMessage.textContent = 'Great run! You already claimed your reward today. Try again tomorrow!';
+                // Still show what reward they earned (but can't claim)
+                rewardInfo.classList.add('show');
+                rewardText.textContent = reward.text + ' (Already claimed today)';
+            } else {
+                // Reward earned and can be claimed
+                gameOverMessage.textContent = 'Great run!';
+                playSound('reward');
+                rewardInfo.classList.add('show');
+                rewardText.textContent = reward.text;
+                markRewardClaimed();
+            }
+
+            gameOverScreen.classList.add('show');
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>

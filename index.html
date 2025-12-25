@@ -280,14 +280,14 @@
         let GROUND_Y = CANVAS_HEIGHT - 100;
         const GRAVITY = 0.8;
         const JUMP_STRENGTH = -12;
-        const MAX_JUMP_HEIGHT = 120; // Maximum height rider can jump
+        const MAX_JUMP_HEIGHT = 140; // Maximum height rider can jump
         const BASE_SPEED = 5;
         const MAX_SPEED = 12;
         const SPEED_INCREMENT = 0.3;
         const SPEED_INTERVAL = 100;
         const THEME_SWITCH_INTERVAL = 300;
         const OBSTACLE_SPAWN_RATE = 0.015;
-        const MIN_OBSTACLE_DISTANCE = 250; // Minimum distance between obstacles (like T-Rex game)
+        const MIN_OBSTACLE_DISTANCE = 250;
         const DOUBLE_CONE_THRESHOLD = 500;
         const CROW_SPAWN_THRESHOLD = 300;
 
@@ -759,13 +759,12 @@
             const offsetFromGround = riderBottomY - groundLevel;
             const baseY = groundLevel + offsetFromGround;
             
-            // Create collision box for rider - smaller and more accurate
-            // Focus on the main body area (scooter + person), not the full rectangle
+            // Collision box covers the scooter from back (x+5) to handlebars (x+70)
             const riderCollisionBox = {
-                x: rider.x + 15, // Start after front wheel
-                y: baseY - 50, // Top of rider (person's head area)
-                width: 35, // Width of scooter body
-                height: 50 // Height from head to ground
+                x: rider.x + 5, 
+                y: baseY - 55, 
+                width: 65, // Width from back box to front handlebar
+                height: 55
             };
             
             if (obstacle.type === 'doubleCone') {
@@ -846,152 +845,137 @@
             }
         }
 
+        // ---------------------------------------------------------
+        // CORRECTED DIRECTION DRAW RIDER (Facing Right / Forward)
+        // ---------------------------------------------------------
         function drawRider() {
-            const color = currentTheme === 'morning' ? '#008080' : '#ffffff';
-            const accentColor = currentTheme === 'morning' ? '#ffffff' : '#008080';
+            const mainColor = currentTheme === 'morning' ? '#008080' : '#ffffff';
+            const secondaryColor = currentTheme === 'morning' ? '#ffffff' : '#008080';
+            const wheelColor = '#333';
+            const separatorColor = '#ffffff'; // White line for separation
+            
             const groundLevel = rider.groundY + 60;
             const riderX = rider.x;
-            // Use rider.y for vertical position - this allows jumping!
             const riderBottomY = rider.y + rider.height;
             const offsetFromGround = riderBottomY - groundLevel;
-            
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
+            const baseY = groundLevel + offsetFromGround; 
 
-            // Calculate positions relative to rider's actual y position
-            const baseY = groundLevel + offsetFromGround;
-            
-            // Motorcycle wheels (larger than scooter)
-            // Front wheel
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // 1. Scooter Wheels (Flipped: Front on Right, Rear on Left)
+            // Rear Wheel (Left)
             ctx.beginPath();
-            ctx.arc(riderX + 20, baseY, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = accentColor;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            // Wheel rim
-            ctx.beginPath();
-            ctx.arc(riderX + 20, baseY, 10, 0, Math.PI * 2);
-            ctx.stroke();
-            // Spokes
-            ctx.beginPath();
-            ctx.moveTo(riderX + 20, baseY - 14);
-            ctx.lineTo(riderX + 20, baseY + 14);
-            ctx.moveTo(riderX + 6, baseY);
-            ctx.lineTo(riderX + 34, baseY);
-            ctx.stroke();
-            
-            // Back wheel (larger)
-            ctx.beginPath();
-            ctx.arc(riderX + 50, baseY, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            // Wheel rim
-            ctx.beginPath();
-            ctx.arc(riderX + 50, baseY, 11, 0, Math.PI * 2);
-            ctx.stroke();
-            // Spokes
-            ctx.beginPath();
-            ctx.moveTo(riderX + 50, baseY - 16);
-            ctx.lineTo(riderX + 50, baseY + 16);
-            ctx.moveTo(riderX + 34, baseY);
-            ctx.lineTo(riderX + 66, baseY);
-            ctx.stroke();
-            
-            // Reset stroke
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            
-            // Motorcycle frame (main body)
-            ctx.fillRect(riderX + 18, baseY - 8, 32, 6);
-            
-            // Fuel tank (bulge on top)
-            ctx.beginPath();
-            ctx.ellipse(riderX + 30, baseY - 15, 12, 8, 0, 0, Math.PI * 2);
+            ctx.arc(riderX + 15, baseY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = wheelColor;
             ctx.fill();
             
-            // Engine block (below fuel tank)
-            ctx.fillRect(riderX + 22, baseY - 8, 16, 6);
-            
-            // Seat
+            // Front Wheel (Right)
             ctx.beginPath();
-            ctx.ellipse(riderX + 40, baseY - 10, 10, 4, 0, 0, Math.PI * 2);
+            ctx.arc(riderX + 55, baseY, 10, 0, Math.PI * 2);
             ctx.fill();
+
+            // 2. Scooter Body (The Vehicle)
+            ctx.fillStyle = mainColor;
             
-            // Front fork (suspension)
-            ctx.beginPath();
-            ctx.moveTo(riderX + 20, baseY);
-            ctx.lineTo(riderX + 20, baseY - 25);
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            // Handlebar (wider, motorcycle style)
-            ctx.beginPath();
-            ctx.moveTo(riderX + 5, baseY - 25);
-            ctx.lineTo(riderX + 35, baseY - 25);
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            // Handlebar grips
-            ctx.beginPath();
-            ctx.arc(riderX + 5, baseY - 25, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(riderX + 35, baseY - 25, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Delivery rider (person on bike)
-            // Helmet
-            ctx.beginPath();
-            ctx.arc(riderX + 22, baseY - 38, 9, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = accentColor;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            // Helmet visor
-            ctx.beginPath();
-            ctx.arc(riderX + 22, baseY - 35, 6, 0, Math.PI);
-            ctx.stroke();
-            
-            // Body (torso - leaning forward on bike)
-            ctx.fillRect(riderX + 18, baseY - 32, 10, 16);
-            // Delivery bag/box on back
-            ctx.fillRect(riderX + 28, baseY - 30, 8, 12);
-            
-            // Arms (holding handlebar - extended forward)
-            ctx.strokeStyle = color;
+            // Delivery Box (Back / Left Side)
+            ctx.fillStyle = secondaryColor;
+            ctx.fillRect(riderX + 5, baseY - 38, 18, 18);
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(riderX + 7, baseY - 35, 14, 12); // Branding
+
+            // Rear Body / Seat (Middle-Left)
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(riderX + 25, baseY - 25, 15, 15);
+
+            // Platform (Middle)
+            ctx.fillRect(riderX + 15, baseY - 12, 40, 8);
+
+            // Front Shield (Right Side)
+            ctx.fillStyle = mainColor;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(riderX + 45, baseY - 35, 20, 25, 5);
+                ctx.fill();
+            } else {
+                // Fallback for browsers without roundRect
+                ctx.fillRect(riderX + 45, baseY - 35, 20, 25);
+            }
+
+            // 3. Handlebars (Right Side)
+            ctx.strokeStyle = '#555';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(riderX + 18, baseY - 28);
-            ctx.lineTo(riderX + 8, baseY - 25);
+            ctx.moveTo(riderX + 55, baseY - 30); // Stem
+            ctx.lineTo(riderX + 50, baseY - 30); // Left Grip
+            ctx.moveTo(riderX + 55, baseY - 30);
+            ctx.lineTo(riderX + 70, baseY - 30); // Right Grip
             ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(riderX + 28, baseY - 28);
-            ctx.lineTo(riderX + 38, baseY - 25);
-            ctx.stroke();
+
+            // 4. Rider (The Person) - Facing Right
             
-            // Legs (on bike, bent)
-            ctx.beginPath();
-            ctx.moveTo(riderX + 20, baseY - 16);
-            ctx.lineTo(riderX + 20, baseY - 5);
-            ctx.lineTo(riderX + 18, baseY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(riderX + 26, baseY - 16);
-            ctx.lineTo(riderX + 26, baseY - 5);
-            ctx.lineTo(riderX + 28, baseY);
-            ctx.stroke();
-            
-            // Feet (on footpegs)
-            ctx.fillRect(riderX + 16, baseY - 2, 5, 3);
-            ctx.fillRect(riderX + 27, baseY - 2, 5, 3);
-            
-            // Exhaust pipe (on right side)
-            ctx.beginPath();
-            ctx.moveTo(riderX + 50, baseY - 5);
-            ctx.lineTo(riderX + 58, baseY - 8);
+            // Body (Jacket) - Sitting on the seat (Middle-Left)
+            ctx.fillStyle = mainColor;
+            ctx.strokeStyle = separatorColor; // WHITE SEPARATION LINE
             ctx.lineWidth = 2;
+            
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                // Positioned on top of rear body
+                ctx.roundRect(riderX + 32, baseY - 40, 14, 18, 4);
+                ctx.fill();
+                ctx.stroke(); // White outline
+            } else {
+                // Fallback
+                ctx.fillRect(riderX + 32, baseY - 40, 14, 18);
+                ctx.strokeRect(riderX + 32, baseY - 40, 14, 18);
+            }
+
+            // Head (Helmet) - Circle on top of body, looking right
+            ctx.beginPath();
+            ctx.arc(riderX + 42, baseY - 52, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke(); // White outline
+
+            // Visor (Facing Right)
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.arc(riderX + 47, baseY - 52, 4, 0, Math.PI * 2); // Visor on Right side of head
+            ctx.fill();
+
+            // Arms (Jacket Sleeves) - Reaching Right to Handlebars
+            ctx.fillStyle = mainColor;
+            ctx.strokeStyle = separatorColor; // White line
+            ctx.lineWidth = 4; 
+            ctx.lineCap = 'round';
+
+            // Left Arm (To Left Grip)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 38, baseY - 38); // Shoulder
+            ctx.lineTo(riderX + 50, baseY - 30); // Hand position
+            ctx.stroke();
+
+            // Right Arm (To Right Grip)
+            ctx.beginPath();
+            ctx.moveTo(riderX + 46, baseY - 38); // Shoulder
+            ctx.lineTo(riderX + 70, baseY - 30); // Hand position
+            ctx.stroke();
+
+            // Hands (Gloves) - Drawn ON TOP of handlebars
+            ctx.fillStyle = mainColor;
+            ctx.lineWidth = 2; 
+            ctx.strokeStyle = separatorColor; 
+
+            // Left Hand
+            ctx.beginPath();
+            ctx.arc(riderX + 50, baseY - 30, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Right Hand
+            ctx.beginPath();
+            ctx.arc(riderX + 70, baseY - 30, 4, 0, Math.PI * 2);
+            ctx.fill();
             ctx.stroke();
         }
 
